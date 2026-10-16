@@ -51,6 +51,9 @@ class CaptureService : Service() {
 
     // Tunable: lower = more sensitive to quiet speech, higher = ignores more noise/music
     private val speechThreshold = 300.0
+    // Phrase end: this many 100 ms frames of silence (4 = 0.4 s), or this many frames max (50 = 5 s)
+    private val endSilenceFrames = 4
+    private val maxFrames = 50
 
     override fun onBind(i: Intent?): IBinder? = null
 
@@ -149,8 +152,8 @@ class CaptureService : Service() {
             } else if (inSpeech) silenceFrames++
             if (inSpeech) {
                 seg.write(fb)
-                // end of phrase: 0.6 s silence, or 8 s max
-                if (silenceFrames >= 6 || seg.size() >= 80 * frame * 2) {
+                // end of phrase: short silence, or max length
+                if (silenceFrames >= endSilenceFrames || seg.size() >= maxFrames * frame * 2) {
                     if (speechFrames >= 8) submit(seg.toByteArray())
                     seg.reset(); inSpeech = false; speechFrames = 0; silenceFrames = 0
                 }
