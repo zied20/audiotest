@@ -167,7 +167,7 @@ class CaptureService : Service() {
             try { process(pcm) }
             catch (e: AuthException) { ui.post { badKey(e.which) } }
             catch (e: RateLimitException) { showText("⚠ تجاوزت حد الاستخدام المجاني، انتظر قليلاً") }
-            catch (e: Exception) { showText("⚠ ${e.message}") }
+            catch (e: Exception) { showText("⚠ ${e.message?.take(80)}") }
             finally { pending.decrementAndGet() }
         }
     }
@@ -191,8 +191,9 @@ class CaptureService : Service() {
         if (text.isBlank() || lang.equals("arabic", true)) return
         // No Anthropic key -> free translation through Groq (Llama); key present -> Claude
         val ar = if (claude.isBlank()) {
-            try { translateGroq(groq, text, "llama-3.3-70b-versatile") }
-            catch (e: RateLimitException) { translateGroq(groq, text, "llama-3.1-8b-instant") }
+            try { translateGroq(groq, text, "openai/gpt-oss-120b") }
+            catch (e: AuthException) { throw e }
+            catch (e: Exception) { translateGroq(groq, text, "openai/gpt-oss-20b") }
         } else translate(claude, text)
         if (ar.isNotBlank()) showText(ar)
     }
@@ -245,7 +246,9 @@ class CaptureService : Service() {
         val body = JSONObject()
             .put("model", model)
             .put("temperature", 0.2)
-            .put("max_tokens", 400)
+            .put("max_completion_tokens", 1024)
+            .put("reasoning_effort", "low")
+            .put("include_reasoning", false)
             .put("messages", JSONArray()
                 .put(JSONObject().put("role", "system").put("content", sys))
                 .put(JSONObject().put("role", "user").put("content", text)))
