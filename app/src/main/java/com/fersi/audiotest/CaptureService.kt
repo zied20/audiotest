@@ -88,7 +88,7 @@ class CaptureService : Service() {
 
     private fun showText(t: String) = ui.post {
         lines.add(t)
-        while (lines.size > 2) lines.removeAt(0)
+        while (lines.size > 1) lines.removeAt(0) // show only the newest sentence
         overlay?.apply { text = lines.joinToString("\n"); visibility = View.VISIBLE }
         ui.removeCallbacks(clearTask)
         ui.postDelayed(clearTask, 7000)
