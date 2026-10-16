@@ -11,6 +11,7 @@ import android.os.Bundle
 import android.provider.Settings
 import android.text.InputType
 import android.widget.Button
+import android.widget.CheckBox
 import android.widget.EditText
 import android.widget.LinearLayout
 import android.widget.ScrollView
@@ -22,6 +23,7 @@ class MainActivity : Activity() {
     private lateinit var status: TextView
     private lateinit var groq: EditText
     private lateinit var claude: EditText
+    private lateinit var useClaude: CheckBox
     private val prefs by lazy { getSharedPreferences("cfg", MODE_PRIVATE) }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -38,6 +40,10 @@ class MainActivity : Activity() {
         }
         groq = field("Groq API key", "groq")
         claude = field("Anthropic API key (اختياري - ترجمة أفضل، مدفوع)", "claude")
+        useClaude = CheckBox(this).apply {
+            text = "استخدم Claude للترجمة (أدق، وقد يكون أبطأ). ألغِ التحديد للترجمة المجانية السريعة"
+            isChecked = prefs.getBoolean("useClaude", true)
+        }
         val start = Button(this).apply { text = "ابدأ الترجمة"; setOnClickListener { begin() } }
         val stop = Button(this).apply {
             text = "إيقاف"
@@ -54,6 +60,7 @@ class MainActivity : Activity() {
             addView(groq)
             addView(link("مفتاح Anthropic (اختياري)", "https://console.anthropic.com/settings/keys"))
             addView(claude)
+            addView(useClaude)
             addView(start); addView(stop)
         }
         setContentView(ScrollView(this).apply { addView(box) })
@@ -98,7 +105,7 @@ class MainActivity : Activity() {
                     gc != 200 -> status.text = "مفتاح Groq غير صالح"
                     cc != 200 -> status.text = "مفتاح Anthropic غير صالح"
                     else -> {
-                        prefs.edit().putString("groq", g).putString("claude", c).apply()
+                        prefs.edit().putString("groq", g).putString("claude", c).putBoolean("useClaude", useClaude.isChecked).apply()
                         permissions()
                     }
                 }

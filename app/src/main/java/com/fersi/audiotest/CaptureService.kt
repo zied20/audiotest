@@ -187,15 +187,19 @@ class CaptureService : Service() {
         val prefs = getSharedPreferences("cfg", MODE_PRIVATE)
         val groq = prefs.getString("groq", "") ?: ""
         val claude = prefs.getString("claude", "") ?: ""
+        val t0 = System.currentTimeMillis()
         val (lang, text) = transcribe(groq, wav(pcm))
+        val t1 = System.currentTimeMillis()
         if (text.isBlank() || lang.equals("arabic", true)) return
         // No Anthropic key -> free translation through Groq (Llama); key present -> Claude
-        val ar = if (claude.isBlank()) {
+        val ar = if (claude.isBlank() || !prefs.getBoolean("useClaude", true)) {
             try { translateGroq(groq, text, "openai/gpt-oss-120b") }
             catch (e: AuthException) { throw e }
             catch (e: Exception) { translateGroq(groq, text, "openai/gpt-oss-20b") }
         } else translate(claude, text)
-        if (ar.isNotBlank()) showText(ar)
+        val t2 = System.currentTimeMillis()
+        // timing shown for testing: speech-to-text seconds + translation seconds
+        if (ar.isNotBlank()) showText(ar + String.format(java.util.Locale.US, "  [%.1f+%.1fs]", (t1 - t0) / 1000.0, (t2 - t1) / 1000.0))
     }
 
     private fun transcribe(key: String, wav: ByteArray): Pair<String, String> {
